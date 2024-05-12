@@ -1,0 +1,30 @@
+/** {*/
+/*    -fx-border-width: 1px;*/
+/*    -fx-border-style: solid;*/
+/*    -fx-border-color: black;*/
+/*}*/
+
+.font-awesome {
+    -fx-font-family: "FontAwesome";
+    -fx-font-size: 15;
+}
+
+.control-button:hover {
+    -fx-cursor: hand;
+}
+
+.up-arrow-passive,
+.down-arrow-passive {
+    -fx-text-fill: grey;
+}
+
+.up-arrow-active,
+.down-arrow-active {
+    -fx-text-fill: #00ea53;
+}
+
+.elevator {
+    -fx-border-width: 1px;
+    -fx-border-style: solid;
+    -fx-border-color: black;
+}
