@@ -8,8 +8,6 @@ module org.deadog.oop {
     exports org.deadog.oop;
     exports org.deadog.oop.controllers;
     opens org.deadog.oop.controllers to javafx.fxml;
-    exports org.deadog.oop.panels;
     exports org.deadog.oop.entities;
     exports org.deadog.oop.utils;
-    opens org.deadog.oop.panels to javafx.fxml;
 }
