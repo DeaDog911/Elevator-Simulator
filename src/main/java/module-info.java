@@ -2,6 +2,9 @@ module org.deadog.oop {
     requires javafx.controls;
     requires javafx.fxml;
     requires fontawesomefx;
+    requires java.xml;
+    requires java.sql;
+    requires java.desktop;
 
 
     opens org.deadog.oop to javafx.fxml;
