@@ -10,8 +10,4 @@ public class Passenger {
     public Floor getDestinationFloor() {
         return destinationFloor;
     }
-
-    public void setDestinationFloor(Floor destinationFloor) {
-        this.destinationFloor = destinationFloor;
-    }
 }

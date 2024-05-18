@@ -36,10 +36,6 @@ public class Elevator {
         return capacity;
     }
 
-    public void setCapacity(int capacity) {
-        this.capacity = capacity;
-    }
-
     public ElevatorDirection getDirection() {
         return direction;
     }
@@ -50,10 +46,6 @@ public class Elevator {
 
     public int getTravelTime() {
         return travelTime;
-    }
-
-    public void setTravelTime(int travelTime) {
-        this.travelTime = travelTime;
     }
 
     public List<Passenger> getPassengers() {
