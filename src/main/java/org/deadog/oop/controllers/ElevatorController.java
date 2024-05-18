@@ -25,11 +25,7 @@ import java.util.*;
 public class ElevatorController {
     private Elevator elevator;
 
-    private VBox elevatorBox;
-
     private VBox panel;
-
-    private GridPane grid;
 
     private House house;
 
@@ -56,39 +52,30 @@ public class ElevatorController {
             Duration totalDelay = Duration.seconds(elevator.getTravelTime());
 
             // Обрабатываем очередной вызов
-            Floor floor = callsQuery.get(0);
-            setDestination(floor);
-            Floor nextFloor = floor;
+            Floor nextFloor  = callsQuery.get(0);
+            Floor floor;
             do {
+                floor = nextFloor;
+                setDestination(floor);
                 nextFloor = getFloorOnWay(nextFloor);
-                System.out.println(nextFloor.getNumber());
-                if (nextFloor.equals(floor.getNumber()))
-                    elevator.setDirection(ElevatorDirection.NONE);
 
                 // Прибытие на этаж
                 processMoving(nextFloor);
-                int up = elevator.getPassengersCountUp();
-                int down = elevator.getPassengersCountDown();
-                Floor finalNextFloor = nextFloor;
-                KeyFrame keyFrame = new KeyFrame(totalDelay, event -> {
-                    moveToFloor(finalNextFloor);
-                    updateControls(finalNextFloor);
-                    updateElevatorBox(up, down);
-                });
+
+                KeyFrame keyFrame = getKeyFrame(nextFloor, totalDelay);
                 totalDelay = totalDelay.add(Duration.seconds(elevator.getTravelTime()));
                 timeline.getKeyFrames().add(keyFrame);
 
-                System.out.println("dest");
-                print(elevator.getDestinationFloors());
-
+                nextFloor = null;
                 if (!elevator.getDestinationFloors().isEmpty()) {
                     nextFloor = elevator.getDestinationFloors().get(0);
                 }
 
-                if (!callsQuery.isEmpty()) {
+                if (!callsQuery.isEmpty() && nextFloor == null) {
                     nextFloor = callsQuery.get(0);
                 }
             } while (!callsQuery.isEmpty() || elevator.getPassengersCount() != 0);
+
             timeline.setOnFinished(event -> {
                 active = false;
             });
@@ -96,15 +83,16 @@ public class ElevatorController {
         }
     }
 
-    private void print(List<Floor> floors) {
-        for (Floor floor : floors) {
-            System.out.print(floor.getNumber() + ",");
-        }
-        System.out.println();
-    }
-
-    public Floor getNextFloor(Floor floor) {
-        return floor;
+    private KeyFrame getKeyFrame(Floor floor, Duration totalDelay) {
+        int upElevator = elevator.getPassengersCountUp();
+        int downElevator = elevator.getPassengersCountDown();
+        int upFloor = floor.getPassengersUp().size();
+        int downFloor = floor.getPassengersDown().size();
+        return new KeyFrame(totalDelay, event -> {
+            moveToFloor(floor);
+            updateControls(floor.getNumber(), upFloor, downFloor);
+            updateElevatorBox(upElevator, downElevator);
+        });
     }
 
     public void setDestination(Floor floor) {
@@ -117,31 +105,43 @@ public class ElevatorController {
     }
 
     private Floor getFloorOnWay(Floor destFloor) {
+        if (elevator.getPassengersCount() == elevator.getCapacity())
+            return destFloor;
+
         switch (elevator.getDirection()) {
             case UP: {
                 int minNum = destFloor.getNumber();
                 for (Floor call : callsQuery) {
-                    if (call.getNumber() > elevator.getCurrentFloor().getNumber()
-                            && destFloor.getNumber() > call.getNumber())
-                        minNum = Math.min(call.getNumber(), minNum);
+                    if (!call.getPassengersUp().isEmpty()) {
+                        if (call.getNumber() > elevator.getCurrentFloor().getNumber()
+                                && destFloor.getNumber() > call.getNumber())
+                            minNum = Math.min(call.getNumber(), minNum);
+                    }
                 }
-                if (!elevator.getDestinationFloors().isEmpty())
-                    minNum = Math.min(elevator.getDestinationFloors().get(0).getNumber(), minNum);
+                if (!elevator.getDestinationFloors().isEmpty()) {
+                    Floor floor = elevator.getDestinationFloors().get(0);
+                    if (!floor.getPassengersUp().isEmpty())
+                        minNum = Math.min(floor.getNumber(), minNum);
+                }
                 return house.getFloor(minNum);
             } case DOWN: {
                 int maxNum = destFloor.getNumber();
                 for (Floor call : callsQuery) {
-                    if (call.getNumber() < elevator.getCurrentFloor().getNumber()
-                            && destFloor.getNumber() < call.getNumber())
-                        maxNum = Math.max(call.getNumber(), maxNum);
+                    if (!call.getPassengersDown().isEmpty()) {
+                        if (call.getNumber() < elevator.getCurrentFloor().getNumber()
+                                && destFloor.getNumber() < call.getNumber())
+                            maxNum = Math.max(call.getNumber(), maxNum);
+                    }
                 }
-                if (!elevator.getDestinationFloors().isEmpty())
-                    maxNum = Math.max(elevator.getDestinationFloors().get(0).getNumber(), maxNum);
+                if (!elevator.getDestinationFloors().isEmpty()) {
+                    Floor floor = elevator.getDestinationFloors().get(0);
+                    if (!floor.getPassengersDown().isEmpty())
+                        maxNum = Math.max(floor.getNumber(), maxNum);
+                }
                 return house.getFloor(maxNum);
-            } case NONE:
-                return destFloor;
+            }
             default:
-                return null;
+                return destFloor;
         }
     }
 
@@ -208,7 +208,10 @@ public class ElevatorController {
         return destFloor;
     }
 
+    // UI
+
     private void updateElevatorBox(int up, int down) {
+        VBox elevatorBox = (VBox) panel.lookup("#elevatorBox");
         Label upLabelIcon = (Label) elevatorBox.lookup("#elevator-upLabelIcon");
         Label upLabel = (Label) elevatorBox.lookup("#elevator-upLabel");
 
@@ -227,36 +230,39 @@ public class ElevatorController {
         }
 
         if (down == 0) {
-            downLabelIcon.getStyleClass().remove("down-arrow-active");
+            downLabelIcon.getStyleClass().removeAll("down-arrow-active");
             downLabelIcon.getStyleClass().add("down-arrow-passive");
         } else {
-            downLabelIcon.getStyleClass().remove("down-arrow-passive");
+            downLabelIcon.getStyleClass().removeAll("down-arrow-passive");
             downLabelIcon.getStyleClass().add("down-arrow-active");
         }
     }
 
-    public void updateControls(Floor floor) {
-        Label upLabel = (Label) grid.lookup("#" + floor.getNumber() + "-upLabel");
-        Label upLabelIcon = (Label) grid.lookup("#" + floor.getNumber() + "-upLabelIcon");
+    public void updateControls(int floorNumber, int up, int down) {
+        GridPane grid = (GridPane) panel.lookup("#grid");
+        Label upLabel = (Label) grid.lookup("#" + floorNumber + "-upLabel");
+        Label upLabelIcon = (Label) grid.lookup("#" + floorNumber+ "-upLabelIcon");
 
-        Label downLabel = (Label) grid.lookup("#" + floor.getNumber() + "-downLabel");
-        Label downLabelIcon = (Label) grid.lookup("#" + floor.getNumber() + "-downLabelIcon");
+        Label downLabel = (Label) grid.lookup("#" + floorNumber + "-downLabel");
+        Label downLabelIcon = (Label) grid.lookup("#" + floorNumber + "-downLabelIcon");
 
-        upLabel.setText(String.valueOf(floor.getPassengersUp().size()));
-        downLabel.setText(String.valueOf(floor.getPassengersDown().size()));
+        upLabel.setText(String.valueOf(up));
+        downLabel.setText(String.valueOf(down));
 
-        if (floor.getPassengersUp().isEmpty()) {
-            upLabelIcon.getStyleClass().remove("up-arrow-active");
+        if (up == 0) {
+            upLabelIcon.getStyleClass().removeAll("up-arrow-active");
             upLabelIcon.getStyleClass().add("up-arrow-passive");
         }
 
-        if (floor.getPassengersDown().isEmpty()) {
-            downLabelIcon.getStyleClass().remove("down-arrow-active");
+        if (down == 0) {
+            downLabelIcon.getStyleClass().removeAll("down-arrow-active");
             downLabelIcon.getStyleClass().add("down-arrow-passive");
         }
     }
 
     private void moveToFloor(Floor floor) {
+        GridPane grid = (GridPane) panel.lookup("#grid");
+        VBox elevatorBox = (VBox) grid.lookup("#elevatorBox");
         grid.getChildren().remove(elevatorBox);
         grid.add(elevatorBox, 1, house.getFloorsCount() - floor.getNumber() + 1);
     }
@@ -266,8 +272,8 @@ public class ElevatorController {
         elevatorPanel.setPrefSize(width, height);
         elevatorPanel.setAlignment(Pos.CENTER);
 
-        grid = initializeGrid(elevatorPanel);
-        elevatorBox = initializeElevator();
+        GridPane grid = initializeGrid(elevatorPanel);
+        VBox elevatorBox = initializeElevator();
         Button launchButton = new Button("Запуск");
         launchButton.setOnMouseClicked(e -> {
             start();
@@ -283,6 +289,7 @@ public class ElevatorController {
 
     private GridPane initializeGrid(VBox panel) {
         GridPane grid = new GridPane();
+        grid.setId("grid");
         for (int i = 0; i < 3; i++) {
             grid.getColumnConstraints().add(new ColumnConstraints());
         }
@@ -311,6 +318,7 @@ public class ElevatorController {
 
     private VBox initializeElevator() {
         VBox vBox = new VBox();
+        vBox.setId("elevatorBox");
         vBox.getStyleClass().add("elevator");
         vBox.setPrefWidth(100);
 
@@ -326,7 +334,6 @@ public class ElevatorController {
         Label upLabel = new Label("0");
         upLabel.setFont(new Font(15));
         upLabel.setId("elevator-upLabel");
-
 
         upBox.getChildren().add(upLabelIcon);
         upBox.getChildren().add(upLabel);
