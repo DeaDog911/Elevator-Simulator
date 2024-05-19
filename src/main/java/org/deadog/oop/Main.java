@@ -9,6 +9,7 @@ import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import org.deadog.oop.controllers.ElevatorController;
 import org.deadog.oop.entities.House;
+import org.deadog.oop.stages.ElevatorInfoStage;
 
 import java.io.IOException;
 
@@ -29,7 +30,7 @@ public class Main extends Application {
         HBox root = new HBox(5);
 
         for (int i = 0; i < house.getEntrancesCount(); i++) {
-            ElevatorController elevatorController = new ElevatorController(WIDTH / 2, HEIGHT / 2, house);
+            ElevatorController elevatorController = new ElevatorController(WIDTH / 2, HEIGHT / 2, house, i+1);
             root.getChildren().add(elevatorController.getPanel());
         }
 

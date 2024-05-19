@@ -15,6 +15,7 @@ import org.deadog.oop.entities.Elevator;
 import org.deadog.oop.entities.Floor;
 import org.deadog.oop.entities.House;
 import org.deadog.oop.entities.Passenger;
+import org.deadog.oop.stages.ElevatorInfoStage;
 import org.deadog.oop.utils.ElevatorDirection;
 import org.xml.sax.helpers.AttributesImpl;
 
@@ -33,12 +34,15 @@ public class ElevatorController {
 
     private List<Floor> callsQuery;
 
-    public ElevatorController(double width, double height, House house) {
+    private ElevatorInfoStage infoStage;
+
+    public ElevatorController(double width, double height, House house, int num) {
         this.elevator = new Elevator(house.getFloor(1));
         this.house = house;
         this.panel = initializeElevatorPanel(width, height);
         this.active = false;
         this.callsQuery = new ArrayList<>();
+        this.infoStage = new ElevatorInfoStage(num);  // Инициализация информационного окна
     }
 
     public VBox getPanel() {
@@ -62,7 +66,8 @@ public class ElevatorController {
                 // Прибытие на этаж
                 processMoving(nextFloor);
 
-                KeyFrame keyFrame = getKeyFrame(nextFloor, totalDelay);
+                Floor currentFloor = elevator.getCurrentFloor();
+                KeyFrame keyFrame = getKeyFrame(nextFloor, totalDelay, currentFloor, new LinkedList<>(elevator.getPassengers()), active);
                 totalDelay = totalDelay.add(Duration.seconds(elevator.getTravelTime()));
                 timeline.getKeyFrames().add(keyFrame);
 
@@ -78,12 +83,16 @@ public class ElevatorController {
 
             timeline.setOnFinished(event -> {
                 active = false;
+                updateInfoPanel(elevator.getCurrentFloor(), new LinkedList<>(), active);
             });
             timeline.play();
         }
     }
 
-    private KeyFrame getKeyFrame(Floor floor, Duration totalDelay) {
+    private KeyFrame getKeyFrame(Floor floor, Duration totalDelay,
+                                 Floor currentFloor,
+                                 List<Passenger> passengers,
+                                 boolean active) {
         int upElevator = elevator.getPassengersCountUp();
         int downElevator = elevator.getPassengersCountDown();
         int upFloor = floor.getPassengersUp().size();
@@ -92,7 +101,16 @@ public class ElevatorController {
             moveToFloor(floor);
             updateControls(floor.getNumber(), upFloor, downFloor);
             updateElevatorBox(upElevator, downElevator);
+            updateInfoPanel(currentFloor, passengers, active);
         });
+    }
+
+    private void updateInfoPanel(Floor currentFloor, List<Passenger> passengers, boolean active) {
+        infoStage.updateInfoPanel(
+                currentFloor,
+                passengers,
+                active
+        );
     }
 
     public void setDestination(Floor floor) {
