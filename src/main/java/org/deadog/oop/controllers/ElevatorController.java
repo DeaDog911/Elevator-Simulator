@@ -79,7 +79,7 @@ public class ElevatorController {
                 if (!callsQuery.isEmpty() && nextFloor == null) {
                     nextFloor = callsQuery.get(0);
                 }
-            } while (!callsQuery.isEmpty() || elevator.getPassengersCount() != 0);
+            } while (!callsQuery.isEmpty() || !elevator.getPassengers().isEmpty());
 
             timeline.setOnFinished(event -> {
                 active = false;
@@ -87,30 +87,6 @@ public class ElevatorController {
             });
             timeline.play();
         }
-    }
-
-    private KeyFrame getKeyFrame(Floor floor, Duration totalDelay,
-                                 Floor currentFloor,
-                                 List<Passenger> passengers,
-                                 boolean active) {
-        int upElevator = elevator.getPassengersCountUp();
-        int downElevator = elevator.getPassengersCountDown();
-        int upFloor = floor.getPassengersUp().size();
-        int downFloor = floor.getPassengersDown().size();
-        return new KeyFrame(totalDelay, event -> {
-            moveToFloor(floor);
-            updateControls(floor.getNumber(), upFloor, downFloor);
-            updateElevatorBox(upElevator, downElevator);
-            updateInfoPanel(currentFloor, passengers, active);
-        });
-    }
-
-    private void updateInfoPanel(Floor currentFloor, List<Passenger> passengers, boolean active) {
-        infoStage.updateInfoPanel(
-                currentFloor,
-                passengers,
-                active
-        );
     }
 
     public void setDestination(Floor floor) {
@@ -122,8 +98,34 @@ public class ElevatorController {
             elevator.setDirection(ElevatorDirection.NONE);
     }
 
+    public void processMoving(Floor floor) {
+        elevator.setCurrentFloor(floor);
+        elevator.removePassengers(floor);
+
+        if (elevator.getDirection() == ElevatorDirection.UP ||
+                elevator.getDirection() == ElevatorDirection.NONE && floor.getDirection() == ElevatorDirection.UP) {
+            List<Passenger> passengersUp = floor.getPassengersUp();
+            while (!passengersUp.isEmpty() && elevator.getPassengers().size() < elevator.getCapacity()) {
+                elevator.getPassengers().add(passengersUp.remove(0));
+            }
+        } else if (elevator.getDirection() == ElevatorDirection.DOWN ||
+                elevator.getDirection() == ElevatorDirection.NONE && floor.getDirection() == ElevatorDirection.DOWN) {
+            List<Passenger> passengersDown = floor.getPassengersDown();
+            while (!passengersDown.isEmpty() && elevator.getPassengers().size() < elevator.getCapacity()) {
+                elevator.getPassengers().add(passengersDown.remove(0));
+            }
+        }
+
+        elevator.updateDestinationFloors();
+
+        if (floor.getPassengersCount() == 0) {
+            callsQuery.remove(floor);
+            floor.setDirection(ElevatorDirection.NONE);
+        }
+    }
+
     private Floor getFloorOnWay(Floor destFloor) {
-        if (elevator.getPassengersCount() == elevator.getCapacity())
+        if (elevator.getPassengers().size() == elevator.getCapacity())
             return destFloor;
 
         switch (elevator.getDirection()) {
@@ -160,32 +162,6 @@ public class ElevatorController {
             }
             default:
                 return destFloor;
-        }
-    }
-
-    public void processMoving(Floor floor) {
-        elevator.setCurrentFloor(floor);
-        elevator.removePassengers(floor);
-
-        if (elevator.getDirection() == ElevatorDirection.UP ||
-                elevator.getDirection() == ElevatorDirection.NONE && floor.getDirection() == ElevatorDirection.UP) {
-            List<Passenger> passengersUp = floor.getPassengersUp();
-            while (!passengersUp.isEmpty() && elevator.getPassengersCount() < elevator.getCapacity()) {
-                elevator.getPassengers().add(passengersUp.remove(0));
-            }
-        } else if (elevator.getDirection() == ElevatorDirection.DOWN ||
-                elevator.getDirection() == ElevatorDirection.NONE && floor.getDirection() == ElevatorDirection.DOWN) {
-            List<Passenger> passengersDown = floor.getPassengersDown();
-            while (!passengersDown.isEmpty() && elevator.getPassengersCount() < elevator.getCapacity()) {
-                elevator.getPassengers().add(passengersDown.remove(0));
-            }
-        }
-
-        elevator.updateDestinationFloors();
-
-        if (floor.getPassengersCount() == 0) {
-            callsQuery.remove(floor);
-            floor.setDirection(ElevatorDirection.NONE);
         }
     }
 
@@ -227,6 +203,30 @@ public class ElevatorController {
     }
 
     // UI
+
+    private KeyFrame getKeyFrame(Floor floor, Duration totalDelay,
+                                 Floor currentFloor,
+                                 List<Passenger> passengers,
+                                 boolean active) {
+        int upElevator = elevator.getPassengersCountUp();
+        int downElevator = elevator.getPassengersCountDown();
+        int upFloor = floor.getPassengersUp().size();
+        int downFloor = floor.getPassengersDown().size();
+        return new KeyFrame(totalDelay, event -> {
+            moveToFloor(floor);
+            updateControls(floor.getNumber(), upFloor, downFloor);
+            updateElevatorBox(upElevator, downElevator);
+            updateInfoPanel(currentFloor, passengers, active);
+        });
+    }
+
+    private void updateInfoPanel(Floor currentFloor, List<Passenger> passengers, boolean active) {
+        infoStage.updateInfoPanel(
+                currentFloor,
+                passengers,
+                active
+        );
+    }
 
     private void updateElevatorBox(int up, int down) {
         VBox elevatorBox = (VBox) panel.lookup("#elevatorBox");

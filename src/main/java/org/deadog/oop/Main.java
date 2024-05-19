@@ -37,7 +37,7 @@ public class Main extends Application {
         Scene scene = new Scene(root, WIDTH, HEIGHT);
         scene.getStylesheets().add(getClass().getResource("/css/style.css").toExternalForm());
 
-        primaryStage.setTitle("Лифта");
+        primaryStage.setTitle("Лифты    ");
         primaryStage.setScene(scene);
         primaryStage.show();
     }

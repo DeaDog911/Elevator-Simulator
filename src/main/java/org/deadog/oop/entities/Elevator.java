@@ -16,7 +16,7 @@ public class Elevator {
 
     private List<Floor> destinationFloors;
 
-    private int travelTime = 1;
+    private int travelTime = 5  ;
 
     public Elevator(Floor currentFloor) {
         this.currentFloor = currentFloor;
@@ -52,25 +52,12 @@ public class Elevator {
         return passengers;
     }
 
-    public int getPassengersCount() {
-        return passengers.size();
-    }
-
     public List<Floor> getDestinationFloors() {
         return destinationFloors;
     }
 
-    public int removePassengers(Floor floor) {
-        int count = 0;
-        Iterator<Passenger> iterator = passengers.iterator();
-        while (iterator.hasNext()) {
-            Passenger passenger = iterator.next();
-            if (passenger.getDestinationFloor().equals(floor)) {
-                iterator.remove();
-                count++;
-            }
-        }
-        return count;
+    public void removePassengers(Floor floor) {
+        passengers.removeIf(passenger -> passenger.getDestinationFloor().equals(floor));
     }
 
     public void updateDestinationFloors() {
@@ -83,9 +70,9 @@ public class Elevator {
 
         // Сортируем этажи назначения в зависимости от направления движения лифта
         if (direction == ElevatorDirection.UP) {
-            Collections.sort(destinationFloors, Comparator.comparingInt(Floor::getNumber));
+            destinationFloors.sort(Comparator.comparingInt(Floor::getNumber));
         } else if (direction == ElevatorDirection.DOWN) {
-            Collections.sort(destinationFloors, Comparator.comparingInt(Floor::getNumber).reversed());
+            destinationFloors.sort(Comparator.comparingInt(Floor::getNumber).reversed());
         }
     }
 
